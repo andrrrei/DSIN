@@ -4,8 +4,8 @@ DSIN is a database of students in need. We, a team of members of the Trade union
 Tasks that we solved:
 - Database synchronization. We work with more than 200 students, so it is important for us to correctly maintain a database with a lot of information about them. Every mistake costs people real money, so we decided to minimize them by building an algorithm for automatic work with the database. We have 3 of them:<br />
    1) The database of answers to google-form that students fill out and apply for admission<br />
-   2) A database with all students with their current data and documents<br />
-   3) A similar database maintained by the MSU Trade Union Committee<br />
+   2) The database with all students with their current data and documents<br />
+   3) The similar database maintained by the MSU Trade Union Committee<br />
    
    The algorithm of interaction between databases: after checking the documents by the project members, if they are accepted, the data is received or updated from table 1 to table 2.<br />
 In addition, to avoid mistakes on the part of our team or the MSU Trade Union Committee, we regularly check tables 2 and 3 and identify discrepancies.<br />
