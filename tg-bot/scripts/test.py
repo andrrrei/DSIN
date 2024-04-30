@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 
 def hello(text):
     print(f'Функция "{text}"')
@@ -6,4 +5,6 @@ def hello(text):
 print('Привет Мир')
 
 if __name__ == '__main__':
-    hello('hello')
+    my_file = open("BabyFile.txt", "w+")
+    my_file.write("Привет, файл!")
+    my_file.close()
