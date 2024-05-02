@@ -8,6 +8,7 @@ import pygsheets
 import apiclient
 import httplib2
 from datetime import datetime
+import os
 
 #-----------------------------------------------------------------------------------------#
 #--------------------------------------ТАБЛИЦА--------------------------------------------#
@@ -20,11 +21,11 @@ drive_service = build('drive', 'v3', credentials=credentials)
 credentials = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
 client = gspread.authorize(credentials)
 
-#Создание таблицы
+# Создание таблицы
 sh = client.create('test_table', folder_id="1jp9bDnn225CvC250JadqWft2z4RSP11l")
 ws = sh.sheet1
 
-#Заполняем и форматируем первую строку
+# Заполняем и форматируем первую строку
 data = ["Фамилия", "Имя", "Отчество", "Студ. билет", "Профбилет", "Бюджет\контракт", "Направление", "Курс", "Счет", "Факультет", "Адрес", "Категория", "Справки", "Комментарии"]
 ws.insert_row(data)
 fmt = CellFormat(horizontalAlignment='CENTER',
@@ -35,7 +36,7 @@ format_cell_range(ws, 'A1:N1', fmt)
 set_row_height(ws, '1', 40)
 set_column_width(ws, 'A:N', 200)
 
-#Копирование и сортировка таблицы со студентами
+# Копирование и сортировка таблицы со студентами
 gc = pygsheets.authorize(service_file = 'credentials.json')
 base = gc.open_by_key('1xc5GyCMXDV82ssD1ZSyFReiJfuxIpkMigEOh1ojLrCA')
 
@@ -43,9 +44,9 @@ df_base = base[0]
 df = df_base.get_as_df()
 df2 = df.loc[(df['Статус'] == 'Внести') & (df['База данных'] != 'Ок')]
 df2 = df2.sort_values(['ФИО'])
-df2_final = df2.iloc[:,[1,3,4,5,6,7,8,9,20,21]]
+df2_final = df2.iloc[:,[1, 3, 4, 5, 6, 7, 8, 9, 20, 21]]
 
-#Заполняем таблицу на включение данными из отсортированной таблицы со студентами
+# Заполняем таблицу на включение данными из отсортированной таблицы со студентами
 i = 2
 for index, row in df2_final.iterrows():
     insert_data = row['ФИО'].split()
@@ -91,17 +92,21 @@ file_metadata = {
 
 # Создание пустого текстового файла
 new_file = drive_service.files().create(body=file_metadata).execute()
-
+doc_id = new_file['id']
 print('File created: %s' % new_file['id'])
 
 
 # Текст, который нужно вставить в начало документа
-text_to_insert = f"""
-Список студентов, рекомендованных для включения в БДНС факультета ВМК МГУ.\n
+start_text_to_insert = f"""Список студентов, рекомендованных для включения в БДНС факультета ВМК МГУ.\n
 {'Осенний' if current_date.month in [1, 8, 9, 10, 11, 12] else 'Весенний'} семестр {current_date.year} г.\n """
 
+# Текст для подписи (нижнего колонтитула)
+footer_text = f"""Ответственный за ведение БДНС 
+ф-та ВМК МГУ  				       ___________________ Лебедев А. А."""
+
+
 # Создание таблички с данными студентов, которые будем заносить в документ
-df = df2_final.iloc[:,[5,1,2]]
+df = df2_final.iloc[:,[5, 1, 2]]
 insert_data = [[], [], []]
 for elem in df2_final['ФИО']:
     tmp = elem.split()
@@ -113,24 +118,29 @@ df.insert(loc=0, column='Имя', value=insert_data[1])
 df.insert(loc=0, column='Фамилия', value=insert_data[0])
 indexes = [str(i) for i in range(1, len(df2_final) + 1)]
 df.insert(loc=0, column=' ', value=indexes)
-df.to_csv(r'enabling.csv', index=False)
 
-df = pd.read_csv("enabling.csv")
-df[' '] = df[' '].astype(str)
-df['Курс'] = df['Курс'].astype(str)
-df['Номер студенческого билета'] = df['Номер студенческого билета'].astype(str)
-df['Номер профсоюзного билета'] = df['Номер профсоюзного билета'].astype(str)
+df.to_csv(r'my_data.csv', index=False)
+df = pd.read_csv("my_data.csv")
+os.remove("my_data.csv")
+
 df.fillna('   ', inplace=True)
 x, y = df.shape
+for i in range(0, y):
+    for j in range(0, x):
+        df.iloc[j, i] = str(df.iloc[j, i])
+print(df)
 
-#Вставка начального текста и создание таблицы
+# Вставка первоначального текста и первых 20 строк таблицы + устанавливаем размер текста и ширину столбцов
+df_temp = df[:20]
+x, y = df_temp.shape
+start_idx = len(start_text_to_insert)
 requests = [
     {
         'insertText': {
             'location': {
                 'index': 1,
             },
-            'text': text_to_insert,
+            'text': start_text_to_insert,
         }
     },
     {
@@ -140,16 +150,49 @@ requests = [
             "columns": int(y),
             "location":
             {
-                "index": len(text_to_insert)
+                "index": start_idx
             }
         }
     }]
 
-#Вставка первой строки в таблице
-x, y = df.shape
+# Выделяем начальный текст жирным шрифтом
+requests.insert(2, {
+    'updateTextStyle': {
+            'range': {
+                'startIndex': 1,  # Начальный индекс текста
+                'endIndex': start_idx + 1  # Конечный индекс текста
+            },
+            'textStyle': {
+                'bold': True
+            },
+            'fields': '*'
+    }
+})
+
+# Настраиваем ширину столбцов
+widths = [30, 100, 70, 100, 40, 90, 90]
+for i in range(y):
+    requests.insert(2, {
+            'updateTableColumnProperties': {
+                'tableStartLocation': {'index': start_idx + 1},  # Индекс начальной строки таблицы (начинается с 1)
+                'columnIndices': [i],  # Индексы столбцов, для которых нужно установить ширину
+                'tableColumnProperties': {
+                    'widthType': 'FIXED_WIDTH',
+                    'width': {'magnitude': widths[i], 'unit': 'PT'}
+                },  # Установка ширины столбцов в пунктах (PT)
+                'fields': '*'
+            }
+        }
+    )
+
+# Запоминаем параметры нашего датафрейма
+strs, cols = df.shape
 names_column = df.columns.values
-print(names_column)
-ind = len(text_to_insert) + 4
+# Настройка индекса на начало таблицы
+ind = len(start_text_to_insert) + 4
+
+first_ind = ind
+# Вставка названий столбцов
 for i in names_column:
     requests.insert(2, {
         "insertText":
@@ -163,8 +206,25 @@ for i in names_column:
     })
     ind += 2
 ind += 1
+last_ind = ind - 1
 
-#Вставка всех остальных строк
+# Выделяем названия столбцов жирным шрифтом
+requests.insert(2, {
+    'updateTextStyle': {
+            'range': {
+                'startIndex': first_ind,  # Начальный индекс текста
+                'endIndex': last_ind  # Конечный индекс текста
+            },
+            'textStyle': {
+                'bold': True
+            },
+            'fields': '*'
+    }
+})
+
+first_ind = ind
+
+# Вставка значений
 for j in range(0, x):
     for i in names_column:
         requests.insert(2, {
@@ -180,20 +240,253 @@ for j in range(0, x):
         ind += 2
     ind += 1
 
+last_ind = ind
 
-#Вставка текста после таблицы
-text_to_insert = f"""
-Список утверждён решением студенческой комиссии профкома ф-та ВМК МГУ от «{current_date.strftime("%d.%m.%y")} г.»
-Подтверждаем, что все вышеуказанные студенты обучаются по дневной очной форме обучения за счет средств федерального бюджета РФ.
-"""
+# Меняем размер текста в таблице
 requests.insert(2, {
+    'updateTextStyle': {
+            'range': {
+                'startIndex': first_ind,  # Начальный индекс текста
+                'endIndex': last_ind  # Конечный индекс текста
+            },
+            'textStyle': {
+                'fontSize': {
+                    'magnitude': 10,  # Размер шрифта в пунктах
+                    'unit': 'PT'
+                }
+            },
+            'fields': '*'
+    }
+})
+
+if strs > 20:
+    # Вставка текста с подписью
+    requests.insert(2, {
+        'insertText': {
+            'location': {
+                'index': ind,
+            },
+            'text': '\n\n' + footer_text,
+        }
+    })
+elif strs > 7:
+    # Вставка текста с подписью
+    requests.insert(2, {
+        'insertText': {
+            'location': {
+                'index': ind,
+            },
+            'text': '\n\n' + footer_text,
+        }
+    })
+    # Вставка разрыва страницы перед финальным текстом
+    requests.insert(2, {
+        "insertPageBreak": {
+            "location": {
+                "index": ind
+            }
+        }
+    })
+
+
+# Вставляем пачками части таблицы
+begin = 20
+step = 26  # шаг вставки
+end = begin + step
+put_index = 2
+
+# Цикл со вставкой части таблицы + текста для подписей
+while end <= strs:
+    requests.insert(put_index, {
+        "insertTable":
+        {
+            "rows": int(step),
+            "columns": int(y),
+            "location":
+            {
+                "index": ind
+            }
+        }})
+    # Настраиваем ширину столбцов
+    for i in range(y):
+        requests.insert(put_index + 1, {
+                'updateTableColumnProperties': {
+                    'tableStartLocation': {'index': ind + 1},  # Индекс начальной строки таблицы (начинается с 1)
+                    'columnIndices': [i],  # Индексы столбцов, для которых нужно установить ширину
+                    'tableColumnProperties': {
+                        'widthType': 'FIXED_WIDTH',
+                        'width': {'magnitude': widths[i], 'unit': 'PT'}
+                    },  # Установка ширины столбцов в пунктах (PT)
+                    'fields': '*'
+                }
+            }
+        )
+    # Перемещение на начало таблицы и вставка значений
+    ind += 4
+    first_ind = ind
+    for j in range(begin, end):
+        for i in names_column:
+            requests.insert(put_index + 1, {
+                "insertText":
+                    {
+                        "text": df[i][j],
+                        "location":
+                            {
+                                "index": ind
+                            }
+                    }
+            })
+            ind += 2
+        ind += 1
+        last_ind = ind - 1
+    # Меняем размер текста в таблице
+    requests.insert(put_index + 1, {
+        'updateTextStyle': {
+                'range': {
+                    'startIndex': first_ind,  # Начальный индекс текста
+                    'endIndex': last_ind  # Конечный индекс текста
+                },
+                'textStyle': {
+                    'fontSize': {
+                        'magnitude': 10,  # Размер шрифта в пунктах
+                        'unit': 'PT'
+                    }
+                },
+                'fields': '*'
+        }
+    })
+    # Вставка текста для подписи
+    requests.insert(put_index + 1, {
+        'insertText': {
+            'location': {
+                'index': ind-1,
+            },
+            'text': '\n\n' + footer_text,
+        }
+    })
+    put_index += 2
+    ind += len(footer_text) - 1
+    begin += step
+    end += step
+
+# Проверка на оставшуюся часть датафрейма и её вставка
+if begin < strs:
+    requests.insert(put_index, {
+        "insertTable":
+            {
+                "rows": int(strs - begin),
+                "columns": int(y),
+                "location":
+                    {
+                        "index": ind
+                    }
+            }})
+    # Настраиваем ширину столбцов
+    for i in range(y):
+        requests.insert(put_index + 1, {
+                'updateTableColumnProperties': {
+                    'tableStartLocation': {'index': ind + 1},  # Индекс начальной строки таблицы (начинается с 1)
+                    'columnIndices': [i],  # Индексы столбцов, для которых нужно установить ширину
+                    'tableColumnProperties': {
+                        'widthType': 'FIXED_WIDTH',
+                        'width': {'magnitude': widths[i], 'unit': 'PT'}
+                    },  # Установка ширины столбцов в пунктах (PT)
+                    'fields': '*'
+                }
+            }
+        )
+    # Перемещение на начало таблицы и вставка значений
+    ind += 4
+    first_ind = ind
+    for j in range(begin, strs):
+        for i in names_column:
+            requests.insert(put_index + 1, {
+                "insertText":
+                    {
+                        "text": df[i][j],
+                        "location":
+                            {
+                                "index": ind
+                            }
+                    }
+            })
+            ind += 2
+        ind += 1
+    last_ind = ind - 1
+    # Меняем размер текста в таблице
+    requests.insert(put_index + 1, {
+        'updateTextStyle': {
+                'range': {
+                    'startIndex': first_ind,  # Начальный индекс текста
+                    'endIndex': last_ind  # Конечный индекс текста
+                },
+                'textStyle': {
+                    'fontSize': {
+                        'magnitude': 10,  # Размер шрифта в пунктах
+                        'unit': 'PT'
+                    }
+                },
+                'fields': '*'
+        }
+    })
+
+    if strs - begin >= 9:
+        # Вставка текста для подписи
+        requests.insert(put_index + 1, {
+            'insertText': {
+                'location': {
+                    'index': ind - 1,
+                },
+                'text': '\n\n' + footer_text,
+            }
+        })
+        # Вставка разрыва страницы перед финальным текстом
+        requests.insert(put_index + 1, {
+            "insertPageBreak": {
+                "location": {
+                    "index": ind - 1
+                }
+            }
+        })
+    # Донастройка индексов для вставки текста после таблицы
+    put_index += 1
+    ind -= 1
+
+# Текст для вставки в конец документа
+end_text_to_insert = f"""
+Список утверждён решением студенческой комиссии профкома ф-та ВМК МГУ от «{current_date.strftime("%d.%m.%y")} г.»
+Подтверждаем, что все вышеуказанные студенты обучаются по дневной очной форме обучения за счет средств федерального бюджета РФ.\n
+Декан ф-та ВМК МГУ  			       ___________________ Соколов И. А. 
+
+
+							М.П.
+
+Зам. декана по учебной работе
+ф-та ВМК МГУ                                                    ___________________ Федотов М. В.
+
+
+
+Председатель профкома ф-та ВМК МГУ          ___________________ Поставничая В. А
+
+							М.П.
+
+Председатель студенческой комиссии 
+ф-та ВМК МГУ 				       ___________________ Худяков Д. В.
+
+
+Ответственный за ведение БДНС 
+ф-та ВМК МГУ  				       ___________________ Лебедев А. А.
+"""
+
+requests.insert(put_index, {
     'insertText': {
         'location': {
             'index': ind,
         },
-        'text': text_to_insert,
+        'text': end_text_to_insert,
     }
 })
+
 
 # Отправка запроса на обновление документа
 docs_service.documents().batchUpdate(documentId=new_file['id'], body={'requests': requests}).execute()
