@@ -113,7 +113,7 @@ current_date = datetime.now().date()
 # Подставьте путь к файлу с вашими учетными данными и ID вашей целевой папки
 SERVICE_ACCOUNT_FILE = 'credentials.json'
 
-FOLDER_ID = '1APorsw1vIaJB0x8xve6cj1vdX38Dx8ZF'
+FOLDER_ID = '14blDt4JalikhJUoenyKLUeT0dxj-sq7G'
 # Аутентификация с использованием учетных данных службы
 credentials = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE,
