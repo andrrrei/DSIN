@@ -25,8 +25,10 @@ sheets_service = apiclient.discovery.build('sheets', 'v4', http=httpAuth)
 
 gc = pygsheets.authorize(service_file='credentials.json')
 
+inter_file = ' my_data.csv'
+
 # Считывание ID таблицы ответов на форму
-table1 = '1VCBrFI6nnEU-omIzAlIuhqDrY74JusRBQ5EDXlAfnkI'
+table1 = '1fZhfUDWSGGr6uHQVdMpA1O2KNX32uXpKe8hMMNkoeMM'
 
 # Считывание даты, с которой нужно брать данные
 date_period_str = input("Введите дату, начиная с которой отсчитывать период: ")
@@ -52,10 +54,10 @@ if df2.empty:
 # Установка доступа к Google Sheets
 scope = ['https://spreadsheets.google.com/feeds',
          'https://www.googleapis.com/auth/drive']
-
+status_table = '1OcFvuJ0n2PcyPaBVJIp619j08KE9TWWMrzCzClDCyjM'
 credentials = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
 gc2 = gspread.authorize(credentials)
-status_base = gc2.open_by_key('1OcFvuJ0n2PcyPaBVJIp619j08KE9TWWMrzCzClDCyjM').sheet1
+status_base = gc2.open_by_key(status_table).sheet1
 
 # Получаем все данные из таблицы в виде списка списков
 data = status_base.get_all_values()
@@ -97,7 +99,7 @@ final_df.insert(loc=0, column='X', value=indexes)
 final_df['X'] = final_df['X'].astype(str)
 
 # Второй этап обработки данных завершён, создаём промежуточный CSV-файл с данными (Без промежуточного файла возникает ошибка)
-csv_data = final_df.to_csv(r' my_data.csv', index=False)
+csv_data = final_df.to_csv(inter_file, index=False)
 
 # ------------------- Работа с гугл-документом -------------------------------------#
 import pandas as pd
@@ -111,7 +113,7 @@ current_date = datetime.now().date()
 # Подставьте путь к файлу с вашими учетными данными и ID вашей целевой папки
 SERVICE_ACCOUNT_FILE = 'credentials.json'
 
-FOLDER_ID = '1jp9bDnn225CvC250JadqWft2z4RSP11l'
+FOLDER_ID = '1APorsw1vIaJB0x8xve6cj1vdX38Dx8ZF'
 # Аутентификация с использованием учетных данных службы
 credentials = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE,
@@ -147,7 +149,7 @@ text_to_insert = f"""
  "{current_date.day}" {months[current_date.month - 1]} {current_date.year}г.\n """
 
 # Считывание файла с данными в датафрейм, приведение всех данных в строковый тип
-df = pd.read_csv(" my_data.csv")
+df = pd.read_csv(inter_file)
 df.fillna('   ', inplace=True)
 df['X'] = df['X'].astype(str)
 df.rename(columns={'X': '№'}, inplace=True)

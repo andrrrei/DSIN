@@ -26,6 +26,8 @@ gc = pygsheets.authorize(service_file = 'credentials.json')
 # tables = []
 # for i in range(6):
 #     tables.append(input())
+inter_file = ' my_data.csv'
+
 table1 = '1wtEz3onhjSIZHsPpg0qm8ULOHX8dut_HD2cFCBSuZ8I'
 table2 = '1xgv8U5hV9Dt0TkSht4f0X5UaCbXPF0kEnuVB3FQ2-vE'
 table3 = '1zlc6TxcR9O0C2sjx2_A2fEXAanfGTCz5Nd_FXWb1kT4'
@@ -112,7 +114,7 @@ final_df.insert(loc=0, column='X', value=indexes)
 final_df['X'] = final_df['X'].astype(str)
 
 # Второй этап обработки данных завершён, создаём промежуточный CSV-файл с данными (Без промежуточного файла возникает ошибка)
-csv_data = final_df.to_csv (r' my_data.csv', index=False)
+csv_data = final_df.to_csv (inter_file, index=False)
 
 #------------------- Работа с гугл-документом -------------------------------------#
 
@@ -162,7 +164,7 @@ footer_text = f"""Ответственный за ведение БДНС
 ф-та ВМК МГУ  				       ___________________ Лебедев А. А."""
 
 # Считывание файла с данными в датафрейм, приведение всех данных в строковый тип
-df = pd.read_csv(" my_data.csv")
+df = pd.read_csv(inter_file)
 df['X'] = df['X'].astype(str)
 df.rename(columns={'X': '\t'}, inplace=True)
 for i in df.columns:
