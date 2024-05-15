@@ -152,7 +152,9 @@ def process_float(x):
 
 
 df.fillna(' ', inplace=True)
-df = df.map(lambda x: process_float(x)).astype(str)
+#df = df.map(lambda x: process_float(x)).astype(str)
+for i in df.columns:
+    df[i] = df[i].astype(str)
 print(df)
 
 # Вставка первоначального текста и первых 20 строк таблицы + устанавливаем размер текста и ширину столбцов
