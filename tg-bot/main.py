@@ -163,11 +163,10 @@ def nohup(message):
         return
 
     dir = os.getcwd() + "/nohup.out"
-    
-    files = os.listdir(dir)
 
     send_message(message.from_user.id, "Вот ваш файл логов:")
-    send_document(message.from_user.id, file)
+    with open(dir, 'rb') as file: 
+        send_document(message.from_user.id, file)
 
     return
 
