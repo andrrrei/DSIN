@@ -31,7 +31,7 @@ inter_file = ' my_data.csv'
 table1 = '1fZhfUDWSGGr6uHQVdMpA1O2KNX32uXpKe8hMMNkoeMM'
 
 # Считывание даты, с которой нужно брать данные
-date_period_str = input("Введите дату, начиная с которой отсчитывать период: ")
+date_period_str = "01.01.2024"
 date_period_obj = datetime.datetime.strptime(date_period_str, '%d.%m.%Y')
 
 base = gc.open_by_key(table1)
