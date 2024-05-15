@@ -30,7 +30,7 @@ date_period_obj = datetime.datetime.strptime(date_period_str, '%d.%m.%Y')
 
 # Считывание ID таблицы ответов на форму
 # table = input()
-table = '1VCBrFI6nnEU-omIzAlIuhqDrY74JusRBQ5EDXlAfnkI'
+table = '1fZhfUDWSGGr6uHQVdMpA1O2KNX32uXpKe8hMMNkoeMM'
 base = gc.open_by_key(table)
 df_base = base[0]
 df = df_base.get_as_df()
@@ -94,7 +94,7 @@ current_date = datetime.now().date()
 # Подставьте путь к файлу с вашими учетными данными и ID вашей целевой папки
 SERVICE_ACCOUNT_FILE = 'credentials.json'
 
-FOLDER_ID = '1jp9bDnn225CvC250JadqWft2z4RSP11l'
+FOLDER_ID = '1APorsw1vIaJB0x8xve6cj1vdX38Dx8ZF'
 # Аутентификация с использованием учетных данных службы
 credentials = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE,
