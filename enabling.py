@@ -10,19 +10,22 @@ import httplib2
 from datetime import datetime
 import os
 
+SERVICE_ACCOUNT_FILE = 'credentials.json'
+PARENT_FOLDER_ID = '1jp9bDnn225CvC250JadqWft2z4RSP11l'
+FORM_RESPONSES_ID = '1xc5GyCMXDV82ssD1ZSyFReiJfuxIpkMigEOh1ojLrCA'
 #-----------------------------------------------------------------------------------------#
 #--------------------------------------ТАБЛИЦА--------------------------------------------#
 #-----------------------------------------------------------------------------------------#
 
 # Аутентификация
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-credentials = service_account.Credentials.from_service_account_file('credentials.json')
+credentials = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE)
 drive_service = build('drive', 'v3', credentials=credentials)
-credentials = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
+credentials = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, scope)
 client = gspread.authorize(credentials)
 
 # Создание таблицы
-sh = client.create('test_table', folder_id="1jp9bDnn225CvC250JadqWft2z4RSP11l")
+sh = client.create('test_table', folder_id=PARENT_FOLDER_ID)
 ws = sh.sheet1
 
 # Заполняем и форматируем первую строку
@@ -37,8 +40,8 @@ set_row_height(ws, '1', 40)
 set_column_width(ws, 'A:N', 200)
 
 # Копирование и сортировка таблицы со студентами
-gc = pygsheets.authorize(service_file = 'credentials.json')
-base = gc.open_by_key('1xc5GyCMXDV82ssD1ZSyFReiJfuxIpkMigEOh1ojLrCA')
+gc = pygsheets.authorize(service_file = SERVICE_ACCOUNT_FILE)
+base = gc.open_by_key(FORM_RESPONSES_ID)
 
 df_base = base[0]
 df = df_base.get_as_df()
@@ -90,10 +93,6 @@ for index, row in df2_final.iterrows():
 # Получение текущей даты
 current_date = datetime.now().date()
 
-# Подставьте путь к файлу с вашими учетными данными и ID вашей целевой папки
-SERVICE_ACCOUNT_FILE = 'credentials.json'
-FOLDER_ID = '1jp9bDnn225CvC250JadqWft2z4RSP11l'
-
 # Аутентификация с использованием учетных данных службы
 credentials = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE,
@@ -106,7 +105,7 @@ docs_service = build('docs', 'v1', credentials=credentials)
 # Создание метаданных для нового файла
 file_metadata = {
     'name': 'Egor_test_enabling',
-    'parents': [FOLDER_ID],
+    'parents': [PARENT_FOLDER_ID],
     'mimeType': 'application/vnd.google-apps.document'
 }
 
