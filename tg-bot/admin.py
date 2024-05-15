@@ -1,8 +1,8 @@
 import main as bot
 import for_json
 
-admin_id = '856850518' # krosh
-# admin_id = '397016066'
+#admin_id = '856850518' # krosh
+admin_id = '397016066'
 
 def admin_command(func):
     def wrapper(*args, **kwargs):
