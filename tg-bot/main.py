@@ -137,7 +137,6 @@ def file(message):
         send_message(message.from_user.id, "У вас нет на это прав.")
         return
 
-    # print(os.path.dirname(os.path.abspath(__file__)))
     dir = ""
 
     if "debug" in message.text:
@@ -156,6 +155,21 @@ def file(message):
 
     return
 
+
+@bot.message_handler(commands=['nohup']) # send logs
+def nohup(message):
+    if not for_json.has_access(message.from_user.id):
+        send_message(message.from_user.id, "У вас нет на это прав.")
+        return
+
+    dir = os.getcwd() + "/nohup.out"
+    
+    files = os.listdir(dir)
+
+    send_message(message.from_user.id, "Вот ваш файл логов:")
+    send_document(message.from_user.id, file)
+
+    return
 
 def send_message(id, text, markup=None):
     try:
