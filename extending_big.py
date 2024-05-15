@@ -1,9 +1,7 @@
 # __________ #
-import datetime
-
 import pygsheets
 import pandas as pd
-
+import gspread
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
@@ -24,20 +22,21 @@ sheets_service = apiclient.discovery.build('sheets', 'v4', http=httpAuth)
 gc = pygsheets.authorize(service_file='credentials.json')
 
 # Первый этап (Сбор информации из таблицы ответов на форму)
-# Считывание даты, с которой нужно брать данные
-date_period_str = input("Введите дату, начиная с которой отсчитывать период: ")
-date_period_obj = datetime.datetime.strptime(date_period_str, '%d.%m.%Y')
+inter_file = ' my_data.csv'
 
+# Folder ID
+FOLDER_ID = '14blDt4JalikhJUoenyKLUeT0dxj-sq7G'
+# ID базы данных БДНС
+status_table = '1H0RwMaJfDTCuYmjoqUHcowsNvEuzuS4Y9YvXbc95qvU'
 # Считывание ID таблицы ответов на форму
-# table = input()
-table = '1fZhfUDWSGGr6uHQVdMpA1O2KNX32uXpKe8hMMNkoeMM'
+table = '1Qxg3FwBr8d5L9o9pQFrgPXLnCw-ZS7BqDpfuSL0KAto'
+
 base = gc.open_by_key(table)
 df_base = base[0]
 df = df_base.get_as_df()
 
 # Отсеиваем только нужный период
-df['Отметка времени'] = pd.to_datetime(df['Отметка времени'], format = '%d.%m.%Y %H:%M:%S')
-df = df.loc[df['Отметка времени'] >= date_period_obj]
+df = df.loc[df['База данных'] != 'Ок']
 
 # Считали данные таблицы в датафрейм, вытаскиваем только нужные нам (продление), сортируем
 df2 = df.loc[df['Статус'] == 'Продлить']
@@ -47,19 +46,47 @@ if df2.empty:
     print("Нет людей на продление в этом периоде")
     exit(1)
 
-df2 = df2.sort_values(['ФИО']).reset_index(drop=True)
+# Проставляем ОК
+# Установка доступа к Google Sheets
+scope = ['https://spreadsheets.google.com/feeds',
+         'https://www.googleapis.com/auth/drive']
+credentials = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
+gc2 = gspread.authorize(credentials)
+answer_base = gc2.open_by_key(table).sheet1
+# Получаем все данные из таблицы в виде списка списков
+data = answer_base.get_all_values()
 
-# Разделили ФИО на разные столбцы, достаём остальные необходимые столбцы
+# Создаем DataFrame из полученных данных
+df = pd.DataFrame(data[1:], columns=data[0])
+
+x, y = df2.shape
+for i in range(0, x):
+    # Находим индекс строки, в которой нужно изменить значение
+    value = df2.iat[i, 1]
+    index = df[df['ФИО'] == str(value)].index.tolist()
+    # Меняем значение в другом столбце
+    if index:
+        index = index[
+                    0] + 2  # Прибавляем 2, потому что индексация в Google Sheets начинается с 1 и нумерация строк считается с 2
+        answer_base.update_cell(index, 26, 'Ок')
+        print("Ок!")
+    else:
+        print("Не Ок")
+
+df2 = df2.sort_values(['ФИО']).reset_index(drop=True)
 new_df = df2['ФИО'].str.split(expand=True)
 new_df.columns=['Фамилия','Имя','Отчество']
-df2_final = df2.iloc[:,[3,4,7]]
+
+# Информация для документа о продлении
+df2_final = df2.iloc[:,[3,4,7,21,22]]
+
 
 # Соединяем датафрейм с Фамилией, Именем, Отчеством с остальной информацией
 final_df = pd.concat([new_df, df2_final], axis=1)
 # Первый этап завершён
 
-# Второй этап сверка с базой ОПК
-base = gc.open_by_key('1KjM9rWLjl4T8Vp4DGWnb4pNRTTtwdh12-qdDld5X9jA')
+# Второй этап сверка с базой БДНС
+base = gc.open_by_key(status_table)
 df_base = base[0]
 df = df_base.get_as_df()
 x, y = final_df.shape
@@ -68,12 +95,71 @@ for i in range(0, int(x)):
     surname = final_df.iat[i, 0]
     name = final_df.iat[i, 1]
     df2 = df.loc[(df['Фамилия'] == surname) & (df['Имя'] == name)]
-    if str(df2.iat[0, 6]) == "м":
-        final_df.iat[i, 5] = str(df2.iat[0, 7]) + 'м'
+    print(surname)
+    if str(df2.iat[0, 8]) == "м":
+        final_df.iat[i, 5] = str(df2.iat[0, 9]) + 'м'
     else:
-        final_df.iat[i, 5] = str(df2.iat[0, 7])
-    final_df.iat[i, 3] = str(df2.iat[0, 3])
-    final_df.iat[i, 4] = str(df2.iat[0, 4])
+        final_df.iat[i, 5] = str(df2.iat[0, 9])
+    final_df.iat[i, 3] = str(df2.iat[0, 5])
+    final_df.iat[i, 4] = str(df2.iat[0, 6])
+
+
+# Обновление сроков истечение документов в таблице БДНС
+# Подключаемся к базе статусов БДНС
+# Установка доступа к Google Sheets
+scope = ['https://spreadsheets.google.com/feeds',
+         'https://www.googleapis.com/auth/drive']
+credentials = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
+gc2 = gspread.authorize(credentials)
+status_base = gc2.open_by_key(status_table).sheet1
+
+# Получаем все данные из таблицы в виде списка списков
+data = status_base.get_all_values()
+
+# Создаем DataFrame из полученных данных
+df = pd.DataFrame(data[1:], columns=data[0])
+
+# Извлекаем номер студенческого и срок действия документов
+x, y = final_df.shape
+for i in range(0, x):
+    # Находим индекс строки, в которой нужно изменить значение
+    value = final_df.iat[i, 3]
+    index = df[df['Студенческий'] == str(value)].index.tolist()
+    # Меняем значение в другом столбце
+    if index:
+        index = index[
+                    0] + 2  # Прибавляем 2, потому что индексация в Google Sheets начинается с 1 и нумерация строк считается с 2
+        status_base.update_cell(index, 20, final_df.iat[i, 7])
+        print("Значение обновлено успешно!")
+    else:
+        print("Значение для обновления данных не найдено.")
+
+
+
+# Отбираем информацию для документа со справками
+df3 = final_df.copy()
+sub_df = new_df.copy()
+x, y = sub_df.shape
+for i in range(0, int(x)):
+    sub_df.iat[i, 0] = str(sub_df.iat[i, 0]) + str(sub_df.iat[i, 1])[0] + str(sub_df.iat[i, 2])[0]
+
+# Переименование столбцов и подготовка записи датафрейма в CSV-файл
+sub_df = sub_df['Фамилия']
+df3 = df3.iloc[:, [6, 7]]
+final_sub_df = pd.concat([sub_df, df3], axis=1)
+final_sub_df.rename(columns={'Тип справки': 'Документы'}, inplace=True)
+final_sub_df.rename(columns={'Фамилия': 'Название файла'}, inplace=True)
+indexes = range(1, len(final_sub_df) + 1)
+final_sub_df.insert(loc=0, column='X', value=indexes)
+final_sub_df['X'] = final_sub_df['X'].astype(str)
+
+# Второй этап обработки данных завершён, создаём промежуточный CSV-файл с данными (Без промежуточного файла возникает ошибка)
+csv_data = final_sub_df.to_csv(inter_file, index=False)
+
+# ------------------------------------------------------------
+
+final_df = final_df.iloc[:,[0,1,2,3,4,5]]
+
 # Добавляем столбец с нумерацией
 indexes = range(1, len(final_df) + 1)
 final_df.insert(loc=0, column='X', value=indexes)
@@ -94,7 +180,7 @@ current_date = datetime.now().date()
 # Подставьте путь к файлу с вашими учетными данными и ID вашей целевой папки
 SERVICE_ACCOUNT_FILE = 'credentials.json'
 
-FOLDER_ID = '14blDt4JalikhJUoenyKLUeT0dxj-sq7G'
+
 # Аутентификация с использованием учетных данных службы
 credentials = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE,
@@ -176,7 +262,7 @@ requests.insert(2, {
 })
 
 # Настраиваем ширину столбцов
-widths = [30, 90, 70, 90, 35, 95, 95]
+widths = [27, 90, 70, 90, 37, 95, 95]
 for i in range(y):
     requests.insert(2, {
             'updateTableColumnProperties': {
@@ -472,7 +558,7 @@ end_text_to_insert = f"""
 
 
 
-Председатель профкома ф-та ВМК МГУ          ___________________ Поставничая В. А
+Председатель профкома ф-та ВМК МГУ          ___________________ Гуров С. И.
 
 							М.П.
 
@@ -496,6 +582,151 @@ requests.insert(put_index, {
 
 # Отправка запроса на обновление документа
 docs_service.documents().batchUpdate(documentId=new_file['id'], body={'requests': requests}).execute()
+
+# Работа с документом со справками
+
+# ------------------- Работа с гугл-документом -------------------------------------#
+import pandas as pd
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+
+# Аутентификация с использованием учетных данных службы
+credentials = service_account.Credentials.from_service_account_file(
+    SERVICE_ACCOUNT_FILE,
+    scopes=['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/documents']
+)
+
+# Создание экземпляра клиента для работы с API Google Drive и Google Docs
+drive_service = build('drive', 'v3', credentials=credentials)
+docs_service = build('docs', 'v1', credentials=credentials)
+
+# ________________________________________________________ #
+
+
+# Создание метаданных для нового файла
+file_metadata = {
+    'name': 'Продление справок',
+    'parents': [FOLDER_ID],
+    'mimeType': 'application/vnd.google-apps.document'
+}
+
+# Создание пустого текстового файла
+new_file = drive_service.files().create(body=file_metadata).execute()
+
+print('File created: %s' % new_file['id'])
+
+months = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь',
+          'декабрь']
+# Текст, который нужно вставить в документ
+text_to_insert = f"""
+Справки для БДНС
+Факультет ВМК
+\n
+ "{current_date.day}" {months[current_date.month - 1]} {current_date.year}г.\n """
+
+# Считывание файла с данными в датафрейм, приведение всех данных в строковый тип
+df = pd.read_csv(inter_file)
+df.fillna('   ', inplace=True)
+df['X'] = df['X'].astype(str)
+df.rename(columns={'X': '№'}, inplace=True)
+for i in df.columns:
+    df[i] = df[i].astype(str)
+
+# Вставка первоначального текста и первых 20 строк таблицы
+df_temp = df
+x, y = df_temp.shape
+start_idx = len(text_to_insert)
+requests = [
+    {
+        'insertText': {
+            'location': {
+                'index': 1,
+            },
+            'text': text_to_insert,
+        }
+    },
+    {
+        "insertTable":
+        {
+            "rows": int(x) + 1,
+            "columns": int(y),
+            "location":
+            {
+                "index": start_idx
+            }
+        }
+    }]
+
+widths = [40, 130, 160, 130]
+for i in range(y):
+    requests.insert(2, {
+            'updateTableColumnProperties': {
+                'tableStartLocation': {'index': start_idx + 1},  # Индекс начальной строки таблицы (начинается с 1)
+                'columnIndices': [i],  # Индексы столбцов, для которых нужно установить ширину
+                'tableColumnProperties': {
+                    'widthType': 'FIXED_WIDTH',
+                    'width': {'magnitude': widths[i], 'unit': 'PT'}
+                },  # Установка ширины столбцов в пунктах (PT)
+                'fields': '*'
+            }
+        }
+    )
+
+# Запоминаем параметры нашего датафрейма
+strs, cols = df.shape
+names_column = df.columns.values
+# Настройка индекса на начало таблицы
+ind = len(text_to_insert) + 4
+
+first_ind = ind
+# Вставка названий столбцов
+for i in names_column:
+    requests.insert(2, {
+        "insertText":
+            {
+                "text": i,
+                "location":
+                    {
+                        "index": ind
+                    }
+            }
+    })
+    ind += 2
+ind += 1
+last_ind = ind - 1
+
+requests.insert(2, {
+    'updateTextStyle': {
+            'range': {
+                'startIndex': first_ind,  # Начальный индекс текста
+                'endIndex': last_ind  # Конечный индекс текста
+            },
+            'textStyle': {
+                'bold': True
+            },
+            'fields': '*'
+    }
+})
+
+
+# Вставка значений
+for j in range(0, x):
+    for i in names_column:
+        requests.insert(2, {
+            "insertText":
+                {
+                    "text": df[i][j],
+                    "location":
+                        {
+                            "index": ind
+                        }
+                }
+        })
+        ind += 2
+    ind += 1
+# Отправка запроса на обновление документа
+docs_service.documents().batchUpdate(documentId=new_file['id'], body={'requests': requests}).execute()
+
 
 
 
