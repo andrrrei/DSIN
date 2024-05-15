@@ -11,8 +11,8 @@ from datetime import datetime
 import os
 
 SERVICE_ACCOUNT_FILE = 'credentials.json'
-PARENT_FOLDER_ID = '1jp9bDnn225CvC250JadqWft2z4RSP11l'
-FORM_RESPONSES_ID = '1xc5GyCMXDV82ssD1ZSyFReiJfuxIpkMigEOh1ojLrCA'
+PARENT_FOLDER_ID = '14blDt4JalikhJUoenyKLUeT0dxj-sq7G'
+FORM_RESPONSES_ID = '1fZhfUDWSGGr6uHQVdMpA1O2KNX32uXpKe8hMMNkoeMM'
 #-----------------------------------------------------------------------------------------#
 #--------------------------------------ТАБЛИЦА--------------------------------------------#
 #-----------------------------------------------------------------------------------------#
