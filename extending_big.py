@@ -95,7 +95,6 @@ for i in range(0, int(x)):
     surname = final_df.iat[i, 0]
     name = final_df.iat[i, 1]
     df2 = df.loc[(df['Фамилия'] == surname) & (df['Имя'] == name)]
-    print(surname)
     if str(df2.iat[0, 8]) == "м":
         final_df.iat[i, 5] = str(df2.iat[0, 9]) + 'м'
     else:
@@ -621,7 +620,6 @@ months = ['январь', 'февраль', 'март', 'апрель', 'май'
 text_to_insert = f"""
 Справки для БДНС
 Факультет ВМК
-\n
  "{current_date.day}" {months[current_date.month - 1]} {current_date.year}г.\n """
 
 # Считывание файла с данными в датафрейм, приведение всех данных в строковый тип
@@ -646,6 +644,33 @@ requests = [
         }
     },
     {
+        "updateTextStyle": {
+            "textStyle": {
+                "fontSize": {
+                    "magnitude": 18,  # Размер шрифта
+                    "unit": "PT"
+                }
+            },
+            "fields": "fontSize",
+            "range": {
+                "startIndex": 1,
+                "endIndex": start_idx
+            }
+        }
+    },
+    {
+        "updateParagraphStyle": {
+            "paragraphStyle": {
+                "alignment": "CENTER"  # Выравнивание по центру
+            },
+            "fields": "alignment",
+            "range": {
+                "startIndex": 1,
+                "endIndex": start_idx + 1
+            }
+        }
+    },
+    {
         "insertTable":
         {
             "rows": int(x) + 1,
@@ -657,9 +682,10 @@ requests = [
         }
     }]
 
-widths = [40, 130, 160, 130]
+
+widths = [40, 120, 145, 120]
 for i in range(y):
-    requests.insert(2, {
+    requests.insert(4, {
             'updateTableColumnProperties': {
                 'tableStartLocation': {'index': start_idx + 1},  # Индекс начальной строки таблицы (начинается с 1)
                 'columnIndices': [i],  # Индексы столбцов, для которых нужно установить ширину
@@ -681,7 +707,7 @@ ind = len(text_to_insert) + 4
 first_ind = ind
 # Вставка названий столбцов
 for i in names_column:
-    requests.insert(2, {
+    requests.insert(4, {
         "insertText":
             {
                 "text": i,
@@ -695,7 +721,7 @@ for i in names_column:
 ind += 1
 last_ind = ind - 1
 
-requests.insert(2, {
+requests.insert(4, {
     'updateTextStyle': {
             'range': {
                 'startIndex': first_ind,  # Начальный индекс текста
@@ -712,7 +738,7 @@ requests.insert(2, {
 # Вставка значений
 for j in range(0, x):
     for i in names_column:
-        requests.insert(2, {
+        requests.insert(4, {
             "insertText":
                 {
                     "text": df[i][j],
