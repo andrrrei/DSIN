@@ -45,7 +45,6 @@ base = gc.open_by_key(FORM_RESPONSES_ID)
 
 df_base = base[0]
 df = df_base.get_as_df()
-df = df.loc(df['ФИО'])
 df2 = df.loc[(df['Статус'] == 'Внести') & (df['База данных'] != 'Ок')]
 df2 = df2.sort_values(['ФИО'])
 df2_final = df2.iloc[:,[1, 3, 4, 5, 6, 7, 8, 9, 20, 22]]
