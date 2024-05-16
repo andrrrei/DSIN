@@ -25,7 +25,7 @@ credentials = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_F
 client = gspread.authorize(credentials)
 
 # Создание таблицы
-sh = client.create('test_table', folder_id=PARENT_FOLDER_ID)
+sh = client.create('Таблица включения', folder_id=PARENT_FOLDER_ID)
 ws = sh.sheet1
 
 # Заполняем и форматируем первую строку
@@ -47,7 +47,7 @@ df_base = base[0]
 df = df_base.get_as_df()
 df2 = df.loc[(df['Статус'] == 'Внести') & (df['База данных'] != 'Ок')]
 df2 = df2.sort_values(['ФИО'])
-df2_final = df2.iloc[:,[1, 3, 4, 5, 6, 7, 8, 9, 20, 21]]
+df2_final = df2.iloc[:,[1, 3, 4, 5, 6, 7, 8, 9, 20, 22]]
 
 # Заполняем таблицу на включение данными из отсортированной таблицы со студентами
 i = 2
@@ -104,7 +104,7 @@ docs_service = build('docs', 'v1', credentials=credentials)
 
 # Создание метаданных для нового файла
 file_metadata = {
-    'name': 'Egor_test_enabling',
+    'name': 'Включение',
     'parents': [PARENT_FOLDER_ID],
     'mimeType': 'application/vnd.google-apps.document'
 }
@@ -144,15 +144,14 @@ os.remove("my_data.csv")
 
 
 # Убираем числа типа float и приводим все к строкам + убираем Nan
-def process_float(x):
-    if isinstance(x, float):
-        return str(int(x))
-    else:
-        return x
-
+# def process_float(x):
+#     if isinstance(x, float):
+#         return str(int(x))
+#     else:
+#         return x
+# df = df.map(lambda x: process_float(x)).astype(str)
 
 df.fillna(' ', inplace=True)
-#df = df.map(lambda x: process_float(x)).astype(str)
 for i in df.columns:
     df[i] = df[i].astype(str)
 print(df)
@@ -197,7 +196,7 @@ requests.insert(2, {
 })
 
 # Настраиваем ширину столбцов
-widths = [30, 100, 70, 100, 40, 90, 90]
+widths = [30, 100, 70, 100, 40, 90, 95]
 for i in range(y):
     requests.insert(2, {
             'updateTableColumnProperties': {
