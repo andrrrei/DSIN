@@ -1,4 +1,6 @@
 # __________ #
+import os
+
 import pygsheets
 import pandas as pd
 import gspread
@@ -624,6 +626,7 @@ text_to_insert = f"""
 
 # Считывание файла с данными в датафрейм, приведение всех данных в строковый тип
 df = pd.read_csv(inter_file)
+os.remove(inter_file)
 df.fillna('   ', inplace=True)
 df['X'] = df['X'].astype(str)
 df.rename(columns={'X': '№'}, inplace=True)
