@@ -27,9 +27,9 @@ inter_file = ' my_data.csv'
 # Folder ID
 FOLDER_ID = '14blDt4JalikhJUoenyKLUeT0dxj-sq7G'
 # ID базы данных БДНС
-status_table = '1H0RwMaJfDTCuYmjoqUHcowsNvEuzuS4Y9YvXbc95qvU'
+status_table = '1Cqa_CERAIpnf3jCPoczB498na8drEMZpDAlUrz9_1cU'
 # Считывание ID таблицы ответов на форму
-table = '1Qxg3FwBr8d5L9o9pQFrgPXLnCw-ZS7BqDpfuSL0KAto'
+table = '1fZhfUDWSGGr6uHQVdMpA1O2KNX32uXpKe8hMMNkoeMM'
 
 base = gc.open_by_key(table)
 df_base = base[0]
