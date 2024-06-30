@@ -58,7 +58,14 @@ for index, row in df2_final.iterrows():
         if j == 7:
             insert_data.append('ВМК')
         if j > 0:
-            insert_data.append(str(elem))
+            if str(elem).lower() == 'бюджет':
+                insert_data.append('бюдж')
+            elif str(elem).lower() == 'бакалавриат':
+                insert_data.append('б')
+            elif str(elem).lower() == 'магистратура':
+                insert_data.append('м')
+            else:
+                insert_data.append(str(elem))
         j += 1
     ws.update([insert_data], f'A{i}:N{i}')
     i += 1
@@ -485,7 +492,7 @@ end_text_to_insert = f"""
 
 
 
-Председатель профкома ф-та ВМК МГУ          ___________________ Поставничая В. А
+Председатель профкома ф-та ВМК МГУ          ___________________ Гуров С. И.
 
 							М.П.
 
