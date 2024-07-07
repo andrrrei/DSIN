@@ -1,5 +1,9 @@
 # __________ #
 import os
+import sys
+
+path = 'scripts/debug/extending_big.txt'
+sys.stderr = open(path, 'w')
 
 import pygsheets
 import pandas as pd
@@ -26,12 +30,14 @@ gc = pygsheets.authorize(service_file='credentials.json')
 # Первый этап (Сбор информации из таблицы ответов на форму)
 inter_file = ' my_data.csv'
 
+# ИЗМЕНЯЕМАЯ ИНФОРМАЦИЯ
 # Folder ID
 FOLDER_ID = '14blDt4JalikhJUoenyKLUeT0dxj-sq7G'
 # ID базы данных БДНС
 status_table = '1Cqa_CERAIpnf3jCPoczB498na8drEMZpDAlUrz9_1cU'
 # Считывание ID таблицы ответов на форму
 table = '1fZhfUDWSGGr6uHQVdMpA1O2KNX32uXpKe8hMMNkoeMM'
+#-----------------------------------------------------------#
 
 base = gc.open_by_key(table)
 df_base = base[0]
@@ -546,8 +552,7 @@ if begin < strs:
     ind -= 1
 
 # Текст для вставки в конец документа
-end_text_to_insert = f"""
-Список утверждён решением студенческой комиссии профкома ф-та ВМК МГУ от «{current_date.strftime("%d.%m.%y")} г.»
+end_text_to_insert = f"""Список утверждён решением студенческой комиссии профкома ф-та ВМК МГУ от «{current_date.strftime("%d.%m.%y")} г.»\n
 Подтверждаем, что все вышеуказанные студенты обучаются по дневной очной форме обучения за счет средств федерального бюджета РФ.\n
 Декан ф-та ВМК МГУ  			       ___________________ Соколов И. А. 
 
