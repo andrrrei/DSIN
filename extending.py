@@ -2,12 +2,14 @@
 import os
 import sys
 
+#--------------DEBUG------------#
 path = 'scripts/debug/extending_big.txt'
 sys.stderr = open(path, 'w')
 
 import pygsheets
 import pandas as pd
 import gspread
+from datetime import datetime
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
@@ -27,18 +29,102 @@ sheets_service = apiclient.discovery.build('sheets', 'v4', http=httpAuth)
 
 gc = pygsheets.authorize(service_file='credentials.json')
 
-# Первый этап (Сбор информации из таблицы ответов на форму)
-inter_file = ' my_data.csv'
-
 # ИЗМЕНЯЕМАЯ ИНФОРМАЦИЯ
 # Folder ID
-FOLDER_ID = '14blDt4JalikhJUoenyKLUeT0dxj-sq7G'
+ROOT_FOLDER_ID = '10oXbgb7tBzFp41KpfXwmfWbepmnhZ9ch'
 # ID базы данных БДНС
 status_table = '1Cqa_CERAIpnf3jCPoczB498na8drEMZpDAlUrz9_1cU'
 # Считывание ID таблицы ответов на форму
 table = '1fZhfUDWSGGr6uHQVdMpA1O2KNX32uXpKe8hMMNkoeMM'
 #-----------------------------------------------------------#
 
+#----------------------РАБОТА С ПАПКАМИ----------------------------#
+
+#----------------------АУТЕНТИФИКАЦИЯ------------------------------#
+scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+credentials = service_account.Credentials.from_service_account_file(CREDENTIALS_FILE)
+drive_service = build('drive', 'v3', credentials=credentials)
+credentials = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
+client = gspread.authorize(credentials)
+
+def find_folder(service, folder_name, parent_folder_id=0):
+    if parent_folder_id == 0:
+        query = f"name = '{folder_name}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+    else:
+        query = f"name = '{folder_name}' and '{parent_folder_id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+    results = service.files().list(q=query, fields="files(id, name)").execute()
+    items = results.get('files', [])
+    return items
+
+def create_folder(service, folder_name, parent_folder_id=0):
+    if parent_folder_id == 0:
+        file_metadata = {
+            'name': folder_name,
+            'mimeType': 'application/vnd.google-apps.folder'
+        }
+    else:
+        file_metadata = {
+            'name': folder_name,
+            'parents': [parent_folder_id],
+            'mimeType': 'application/vnd.google-apps.folder'
+        }
+    file = service.files().create(body=file_metadata, fields='id').execute()
+    return file.get('id')
+
+
+# Поиск папки "УГ" в корневой папке
+current_year = datetime.now().year
+if datetime.now().month >= 9:
+    # Если сейчас сентябрь или позже, то учебный год начинается в этом году
+    start_year = current_year
+else:
+    # Иначе учебный год начался в предыдущем году
+    start_year = current_year - 1
+end_year = start_year + 1
+folder_name = f"УГ {start_year}-{end_year}"
+
+folders = find_folder(drive_service, folder_name, ROOT_FOLDER_ID)
+if not folders:
+    folder_id = create_folder(drive_service, folder_name, ROOT_FOLDER_ID)
+else:
+    folder_id = folders[0]['id']
+
+# Поиск папки текущего месяца в папке УГ
+months = {
+    "January": "Январь",
+    "February": "Февраль",
+    "March": "Март",
+    "April": "Апрель",
+    "May": "Май",
+    "June": "Июнь",
+    "July": "Июль",
+    "August": "Август",
+    "September": "Сентябрь",
+    "October": "Октябрь",
+    "November": "Ноябрь",
+    "December": "Декабрь"
+}
+current_month = datetime.now().strftime("%B")
+current_month = months[current_month]
+folders = find_folder(drive_service, current_month, folder_id)
+if not folders:
+    folder_id = create_folder(drive_service, current_month, folder_id)
+else:
+    folder_id = folders[0]['id']
+
+#Поиск папки "Продление" в папке текущего месяца
+folder_name = "Продление"
+folders = find_folder(drive_service, folder_name, folder_id)
+if not folders:
+    folder_id = create_folder(drive_service, folder_name, folder_id)
+else:
+    folder_id = folders[0]['id']
+
+FOLDER_ID = folder_id
+#---------НУЖНЫЕ ПАПКИ НАЙДЕНЫ ИЛИ СОЗДАНЫ----------------
+
+# Первый этап (Сбор информации из таблицы ответов на форму)
+inter_file = ' my_data.csv' #Временный файл
 base = gc.open_by_key(table)
 df_base = base[0]
 df = df_base.get_as_df()
