@@ -3,7 +3,7 @@ import os
 import sys
 
 #--------------DEBUG------------#
-path = 'scripts/debug/extending_big.txt'
+path = 'scripts/debug/extending.txt'
 sys.stderr = open(path, 'w')
 
 import pygsheets
@@ -36,6 +36,7 @@ ROOT_FOLDER_ID = '10oXbgb7tBzFp41KpfXwmfWbepmnhZ9ch'
 status_table = '1Cqa_CERAIpnf3jCPoczB498na8drEMZpDAlUrz9_1cU'
 # Считывание ID таблицы ответов на форму
 table = '1fZhfUDWSGGr6uHQVdMpA1O2KNX32uXpKe8hMMNkoeMM'
+
 #-----------------------------------------------------------#
 
 #----------------------РАБОТА С ПАПКАМИ----------------------------#
@@ -121,6 +122,7 @@ else:
     folder_id = folders[0]['id']
 
 FOLDER_ID = folder_id
+
 #---------НУЖНЫЕ ПАПКИ НАЙДЕНЫ ИЛИ СОЗДАНЫ----------------
 
 # Первый этап (Сбор информации из таблицы ответов на форму)
@@ -172,7 +174,7 @@ new_df = df2['ФИО'].str.split(expand=True)
 new_df.columns=['Фамилия','Имя','Отчество']
 
 # Информация для документа о продлении
-df2_final = df2.iloc[:,[3,4,7,21,22]]
+df2_final = df2.iloc[:,[3,4,7,21,22,16,17,18,19]]
 
 
 # Соединяем датафрейм с Фамилией, Именем, Отчеством с остальной информацией
@@ -246,11 +248,103 @@ indexes = range(1, len(final_sub_df) + 1)
 final_sub_df.insert(loc=0, column='X', value=indexes)
 final_sub_df['X'] = final_sub_df['X'].astype(str)
 
+# Скопируем файлы каждого студента в отдельную папку на диске
+
+#----------------------КОПИРОВАНИЕ ФАЙЛОВ-------------------------------#
+
+# Укажите путь к вашему JSON файлу учетной записи службы
+SERVICE_ACCOUNT_FILE = 'credentials.json'
+SCOPES = ['https://www.googleapis.com/auth/drive']
+
+#-----------Описание вспомогательных функций---------------------#
+def authenticate():
+    """Авторизация и получение service."""
+    creds = service_account.Credentials.from_service_account_file(
+        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    service = build('drive', 'v3', credentials=creds)
+    return service
+
+
+def get_folder_id(service, folder_name, parent_folder_id):
+    """Проверяет наличие папки на Google Диске и возвращает её ID."""
+    query = f"mimeType='application/vnd.google-apps.folder' and name='{folder_name}' and '{parent_folder_id}' in parents and trashed=false"
+    results = service.files().list(q=query, spaces='drive', fields='files(id, name)').execute()
+    items = results.get('files', [])
+    if items:
+        # Папка найдена, возвращаем её ID
+        return items[0]['id']
+    return None
+
+def create_folder(service, folder_name, parent_folder_id):
+    """Создает папку на Google Диске, если её ещё нет."""
+    folder_id = get_folder_id(service, folder_name, parent_folder_id)
+    if folder_id:
+        print(f"Папка '{folder_name}' уже существует с ID '{folder_id}'.")
+        return folder_id
+    file_metadata = {
+        'name': folder_name,
+        'mimeType': 'application/vnd.google-apps.folder',
+        'parents': [parent_folder_id]
+    }
+    folder = service.files().create(body=file_metadata, fields='id').execute()
+    print(f"Папка '{folder_name}' создана внутри '{parent_folder_id}'.")
+    return folder.get('id')
+
+
+def copy_file(service, file_id, destination_folder_id):
+    """Копирует файл на Google Диске в другую папку."""
+    copied_file = {'parents': [destination_folder_id]}
+    try:
+        copied_file = service.files().copy(fileId=file_id, body=copied_file).execute()
+        print(f"Файл с ID {file_id} успешно скопирован в папку с ID {destination_folder_id}.")
+        return copied_file.get('id')
+    except Exception as e:
+        print(f"Не удалось скопировать файл: {e}")
+
+
+def get_file_id_from_url(file_url):
+    """Получает идентификатор файла из ссылки на файл Google Диска."""
+    # Ссылка формата https://drive.google.com/open?id=++++++++++++++++++++++
+    pos = file_url.rfind("id=")  # находит последнее вхождение 'id='
+    return file_url[pos + len('id='):]
+
+
+
+def copy_files_of_user(parent_folder_id, file_url, new_folder_name):
+    service = authenticate()
+
+    # Получение идентификатора файла из ссылки
+    file_id = get_file_id_from_url(file_url)
+
+    # Создание новой папки
+    new_folder_id = create_folder(service, new_folder_name, parent_folder_id)
+
+    # Копирование файла в новую папку
+    copy_file(service, file_id, new_folder_id)
+
+#------------------------------------------------------------------#
+
+
+# Запуск для каждого из студентов
+# Для каждого студента создаётся папка с его документами
+x, y = final_sub_df.shape
+for i in range(0, int(x)):
+    for j in range(4,8):
+        elem = final_sub_df.iat[i,j]
+        if not(pd.isnull(elem) or (elem == '')):
+            copy_files_of_user(FOLDER_ID, elem, final_sub_df.iat[i, 1])
+
+#--------------------РАБОТА С ПАПКАМИ ЗАВЕРШЕНА------------------------------#
+
+# Оставим только нужную информацию для документа "Справки"
+final_sub_df = final_sub_df.iloc[:, [0,1,2,3]]
+
 # Второй этап обработки данных завершён, создаём промежуточный CSV-файл с данными (Без промежуточного файла возникает ошибка)
 csv_data = final_sub_df.to_csv(inter_file, index=False)
 
 # ------------------------------------------------------------
 
+# Далее следует работа с документом о продлении
 final_df = final_df.iloc[:,[0,1,2,3,4,5]]
 
 # Добавляем столбец с нумерацией
