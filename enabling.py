@@ -116,7 +116,7 @@ else:
 PARENT_FOLDER_ID = folder_id
 
 #-----------------------------------------------------------------------------------------#
-#--------------------------------------ТАБЛИЦА--------------------------------------------#
+#--------------------------------------ТАБЛИЦА--------------------------------------------# 
 #-----------------------------------------------------------------------------------------#
 
 # Создание таблицы
@@ -175,6 +175,66 @@ worksheet = spreadsheet.sheet1
 for i in range(x):
     if df['Статус'][i] == 'Внести' and df['База данных'][i] != 'Ок':
         worksheet.update_cell(i + 2, 26, 'Ок')
+
+
+#-----------------------------------------------------------------------------------------#
+#----------------------Создаем папки с документами в папке "Включение"--------------------#
+#-----------------------------------------------------------------------------------------#
+
+# Функция получения айди файла по его ссылке
+def get_file_id_from_url(file_url):
+    """Получает идентификатор файла из ссылки на файл Google Диска."""
+    # Ссылка формата https://drive.google.com/open?id=++++++++++++++++++++++
+    pos = file_url.rfind("id=")  # находит последнее вхождение 'id='
+    return file_url[pos + len('id='):]  # возвращает идентификатор файла
+
+# Функция копирования файла в папку
+def copy_file(service, file_id, destination_folder_id):
+    """Копирует файл на Google Диске в другую папку."""
+    copied_file = {'parents': [destination_folder_id]}
+    try:
+        copied_file = service.files().copy(fileId=file_id, body=copied_file).execute()
+        return copied_file.get('id')
+    except Exception as e:
+        print(f"Не удалось скопировать файл: {e}")
+
+# Функция копирования файлов пользователя в его папку
+def copy_files_of_user(parent_folder_id, file_url, service):
+    # Получение идентификатора файла из ссылки
+    file_id = get_file_id_from_url(file_url)
+
+    # Копирование файла в новую папку
+    copied_file_id = copy_file(service, file_id, parent_folder_id)
+    return copied_file_id
+
+# Функция переименования файла
+def rename_file(file_id, new_filename, service):
+    file_metadata = {
+        'name': new_filename
+    }
+    # Выполняем запрос к Google Drive API для обновления метаданных файла
+    try:
+        file = service.files().update(fileId=file_id, body=file_metadata).execute()
+    except Exception as e:
+        print(f"Произошла ошибка при изменении имени файла: {e}")
+
+
+# Создание папок с документами для каждого студента
+for index, row in df2.iterrows():
+    arr = row['ФИО'].split()
+    folder = create_folder(drive_service, f"{arr[0]}{arr[1][0]}{arr[2][0]}", PARENT_FOLDER_ID)
+    first_file_url = row['Паспорт']
+    second_file_url = row['Анкета']
+    third_file_url = row['Реквизиты счёта карты']
+    fourth_file_url = row['Подтверждающие документы']
+    file_id = copy_files_of_user(folder, first_file_url, drive_service)
+    rename_file(file_id, 'Паспорт.pdf', drive_service)
+    file_id = copy_files_of_user(folder, second_file_url, drive_service)
+    rename_file(file_id, 'Анкета.pdf', drive_service)
+    file_id = copy_files_of_user(folder, third_file_url, drive_service)
+    rename_file(file_id, 'Реквизиты счёта карты.pdf', drive_service)
+    file_id = copy_files_of_user(folder, fourth_file_url, drive_service)
+    rename_file(file_id, 'Подтверждающие документы.pdf', drive_service)        
 
 #-----------------------------------------------------------------------------------------#
 #-----------------------------------------ДОКУМЕНТ----------------------------------------#
