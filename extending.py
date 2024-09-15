@@ -308,7 +308,15 @@ def get_file_id_from_url(file_url):
     pos = file_url.rfind("id=")  # находит последнее вхождение 'id='
     return file_url[pos + len('id='):]
 
-
+def rename_file(file_id, new_filename, service):
+    file_metadata = {
+        'name': new_filename
+    }
+    # Выполняем запрос к Google Drive API для обновления метаданных файла
+    try:
+        file = service.files().update(fileId=file_id, body=file_metadata).execute()
+    except Exception as e:
+        print(f"Произошла ошибка при изменении имени файла: {e}")
 
 def copy_files_of_user(parent_folder_id, file_url, new_folder_name):
     service = authenticate()
@@ -321,6 +329,8 @@ def copy_files_of_user(parent_folder_id, file_url, new_folder_name):
 
     # Копирование файла в новую папку
     copy_file(service, file_id, new_folder_id)
+
+    rename_file(file_id, 'Подтверждающий документ.pdf', service)
 
 #------------------------------------------------------------------#
 
