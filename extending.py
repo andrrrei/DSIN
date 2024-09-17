@@ -240,7 +240,7 @@ for i in range(0, int(x)):
 
 # Переименование столбцов и подготовка записи датафрейма в CSV-файл
 sub_df = sub_df['Фамилия']
-df3 = df3.iloc[:, [6, 7]]
+df3 = df3.iloc[:, [6, 7, 8, 9, 10, 11]]
 final_sub_df = pd.concat([sub_df, df3], axis=1)
 final_sub_df.rename(columns={'Тип справки': 'Документы'}, inplace=True)
 final_sub_df.rename(columns={'Фамилия': 'Название файла'}, inplace=True)
