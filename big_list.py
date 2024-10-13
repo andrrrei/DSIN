@@ -34,30 +34,31 @@ gc = pygsheets.authorize(service_file="credentials.json")
 # for i in range(6):
 #     tables.append(input())
 
-table1 = "167n9Lh37hQlfyio5RTyHWBuRPppCXgHM4kJbJhtL6bE"  # 2
-# table2 = "1o-EI_rlubN9ZJOmxd4UstTNcQ6Yq86vGHIyPDEsTf_c"  # 5
-table3 = "1LGOd0WiLymp7qcLVxgTrUYIi7G3VUVp8NsElYn9bRNg"  # 3
-table4 = "1v44eeqOp_mc_bnVKbaRsUGWdVnaTfVwZKalakt4FnRY"  # 4
-table5 = "1nTE-PZDbxa5wpyWtiUu4xt5O5lRNyYlMvTpz68Z9OT8"  # 6
+
+table1 = "1-pZ7CbACZC8a5v2p14Ll8QygtjOQgw9C8fCYAECbzd4"  # 2
+# table2 = "1iaL5FvOURtL4SEBfAUv--fIFEdQpb59EioiEse59V7A"  # 5
+# table3 = "1LGOd0WiLymp7qcLVxgTrUYIi7G3VUVp8NsElYn9bRNg"  # 3
+# table4 = "1v44eeqOp_mc_bnVKbaRsUGWdVnaTfVwZKalakt4FnRY"  # 4
+# table5 = "1p8U5muSV43oiyXB222i2uEPIAm9Wc-swPGT0LmBInMU"  # 6
 # table6 = '1ZaDMcPsslzJXeWYBCW-vgQnjsO1wrSe43LaC9mx_wG8' # 1
 
 base1 = gc.open_by_key(table1)
 # base2 = gc.open_by_key(table2)
-base3 = gc.open_by_key(table3)
-base4 = gc.open_by_key(table4)
-base5 = gc.open_by_key(table5)
+# base3 = gc.open_by_key(table3)
+# base4 = gc.open_by_key(table4)
+# base5 = gc.open_by_key(table5)
 # base6 = gc.open_by_key(table6)
 
 df_base1 = base1[0]
 df_base1_1 = base1[1]
 # df_base2 = base2[0]
 # df_base2_1 = base2[1]
-df_base3 = base3[0]
-df_base3_1 = base3[1]
-df_base4 = base4[0]
-df_base4_1 = base4[1]
-df_base5 = base5[0]
-df_base5_1 = base5[1]
+# df_base3 = base3[0]
+# df_base3_1 = base3[1]
+# df_base4 = base4[0]
+# df_base4_1 = base4[1]
+# df_base5 = base5[0]
+# df_base5_1 = base5[1]
 # df_base6 = base6[0]
 # df_base6_1 = base6[1]
 
@@ -65,12 +66,12 @@ df1 = df_base1.get_as_df()
 df1_1 = df_base1_1.get_as_df()
 # df2 = df_base2.get_as_df()
 # df2_1 = df_base2_1.get_as_df()
-df3 = df_base3.get_as_df()
-df3_1 = df_base3_1.get_as_df()
-df4 = df_base4.get_as_df()
-df4_1 = df_base4_1.get_as_df()
-df5 = df_base5.get_as_df()
-df5_1 = df_base5_1.get_as_df()
+# df3 = df_base3.get_as_df()
+# df3_1 = df_base3_1.get_as_df()
+# df4 = df_base4.get_as_df()
+# df4_1 = df_base4_1.get_as_df()
+# df5 = df_base5.get_as_df()
+# df5_1 = df_base5_1.get_as_df()
 # df6 = df_base6.get_as_df()
 # df6_1 = df_base6_1.get_as_df()
 
@@ -78,16 +79,16 @@ df5_1 = df_base5_1.get_as_df()
 df = pd.concat(
     [
         df1,
-        # df2,
-        df3,
-        df4,
-        df5,
-        # df6,
         df1_1,
+        # df2,
         # df2_1,
-        df3_1,
-        df4_1,
-        df5_1,
+        # df3,
+        # df3_1,
+        # df4,
+        # df4_1,
+        # df5,
+        # df5_1,
+        # df6,
         # df6_1,
     ]
 )
