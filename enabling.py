@@ -27,6 +27,8 @@ import sys
 SERVICE_ACCOUNT_FILE = "credentials.json"
 ROOT_FOLDER_ID = "10oXbgb7tBzFp41KpfXwmfWbepmnhZ9ch"
 FORM_RESPONSES_ID = "1fZhfUDWSGGr6uHQVdMpA1O2KNX32uXpKe8hMMNkoeMM"
+BASE_ID = '1Cqa_CERAIpnf3jCPoczB498na8drEMZpDAlUrz9_1cU'
+BASE_RANGE = 'A1:U1000'
 
 # -----------------------------------------------------------------------------------------#
 # --------------------------------------АУТЕНТИФИКАЦИЯ-------------------------------------#
@@ -267,6 +269,89 @@ for index, row in df2.iterrows():
     rename_file(file_id, "Реквизиты счёта карты.pdf", drive_service)
     file_id = copy_files_of_user(folder, fourth_file_url, drive_service)
     rename_file(file_id, "Подтверждающие документы.pdf", drive_service)
+
+#-----------------------------------------------------------------------------------------#
+#-----------------------------------------БАЗА БДНС---------------------------------------#
+#-----------------------------------------------------------------------------------------#
+
+
+# Функция по загрузке таблицы в dataframe
+def load_sheet_to_dataframe(service):
+    """Загружаем данные из Google Таблицы в pandas DataFrame"""
+    sheet = service.spreadsheets()
+    result = sheet.values().get(spreadsheetId=BASE_ID, range=BASE_RANGE).execute()
+    values = result.get('values', [])
+
+    # Преобразуем данные в DataFrame
+    if values:
+        df = pd.DataFrame(values[1:], columns=values[0])  # Используем первую строку как заголовок
+    else:
+        df = pd.DataFrame()  # Пустой DataFrame, если таблица пуста
+
+    return df
+
+# Функция обновления таблицы по dataframe
+def update_sheet_from_dataframe(service, df):
+    """Обновляем Google Таблицу на основе pandas DataFrame"""
+    sheet = service.spreadsheets()
+    
+    # Преобразуем DataFrame обратно в список списков для записи
+    values = [df.columns.values.tolist()] + df.values.tolist()
+
+    body = {
+        'values': values
+    }
+
+    # Обновляем Google Таблицу  
+    sheet.values().update(
+        spreadsheetId=BASE_ID,
+        range=BASE_RANGE,
+        valueInputOption="RAW",
+        body=body
+    ).execute()
+
+
+# Обновляем базу БДНС
+base_service = build('sheets', 'v4', credentials=credentials)
+base_df = load_sheet_to_dataframe(base_service)
+necessary_rows = df2.iloc[:,[0, 1, 13, 3, 4, 5, 6, 7, 8, 9, 20, 11, 12, 16, 17, 18, 19, 21]]
+# Создаем строки, которые будем вставлять
+rows_to_insert_columns = base_df.columns.tolist()
+rows_to_insert = pd.DataFrame(columns=rows_to_insert_columns)
+for i in range(necessary_rows.values.shape[0]):
+    row = necessary_rows.values[i]
+    surname, name, lastname = row[1].split()[0], row[1].split()[1], row[1].split()[2]
+    for j in range(len(rows_to_insert_columns)):
+        if j == 0:
+            rows_to_insert.loc[i, rows_to_insert_columns[j]] = row[j].split()[0]
+        elif j == 1:
+            rows_to_insert.loc[i, rows_to_insert_columns[j]] = surname
+        elif j == 2:
+            rows_to_insert.loc[i, rows_to_insert_columns[j]] = name
+        elif j == 3:
+            rows_to_insert.loc[i, rows_to_insert_columns[j]] = lastname
+        elif j == 7:
+            rows_to_insert.loc[i, rows_to_insert_columns[j]] = 'бюдж'
+        elif j == 8:
+            if row[j - 2] == 'Бакалавриат':
+                rows_to_insert.loc[i, rows_to_insert_columns[j]] = 'б'
+            else:
+                rows_to_insert.loc[i, rows_to_insert_columns[j]] = 'м'
+        elif j == 10:
+            rows_to_insert.loc[i, rows_to_insert_columns[j]] = str(row[j - 2])
+        elif j == 20:
+            rows_to_insert.loc[i, rows_to_insert_columns[j]] = 'Ок'
+        else:
+            rows_to_insert.loc[i, rows_to_insert_columns[j]] = row[j - 2]
+
+base_df = pd.concat([base_df, rows_to_insert], ignore_index=True)
+base_df.drop_duplicates(inplace=True, ignore_index=True)
+base_df.sort_values(by=['Фамилия', 'Имя', 'Отчество'], inplace=True, ignore_index=True)
+base_df.to_csv('base_df.csv', index=False, encoding='utf-8-sig')
+update_sheet_from_dataframe(base_service, base_df)
+
+
+
 
 # -----------------------------------------------------------------------------------------#
 # -----------------------------------------ДОКУМЕНТ----------------------------------------#
