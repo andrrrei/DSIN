@@ -314,7 +314,7 @@ def update_sheet_from_dataframe(service, df):
 # Обновляем базу БДНС
 base_service = build('sheets', 'v4', credentials=credentials)
 base_df = load_sheet_to_dataframe(base_service)
-necessary_rows = df2.iloc[:,[0, 1, 13, 3, 4, 5, 6, 7, 8, 9, 20, 11, 12, 16, 17, 18, 19, 21]]
+necessary_rows = df2.iloc[:,[0, 1, 13, 3, 4, 5, 6, 7, 8, 9, 20, 11, 12, 16, 17, 18, 19, 22]]
 # Создаем строки, которые будем вставлять
 rows_to_insert_columns = base_df.columns.tolist()
 rows_to_insert = pd.DataFrame(columns=rows_to_insert_columns)
