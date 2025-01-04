@@ -14,7 +14,7 @@ So that this work does not take dozens of hours and does not make mistakes, an E
 Now the execution time of our work has been reduced by 80-90% for some tasks, and the number of errors has been minimized. 
 - For the comfortable operation of this system, a telegram bot has been developed that implements control over these tasks.
 - Also, there was a need to regularly transfer files from Google Grive (our main working space) to Yandex Drive, which was written custom script.
-- We have created a table where students of our faculty can check anonymously their inclusion status in the database
+- We have created a table where students of our faculty can check anonymously their inclusion status in the database.
 
 Technologies used: Google Drive API, Google Docs API, Google Spreadsheets API, Yandex drive API.
 
@@ -25,8 +25,8 @@ At the moment, some scripts are being finalized and debagged, so they will be up
 
 
 Some words about files in this repository:
-1. bases_sync.py - scrips which allows to compare two databases and identify discrepancies.
-2. course_heads.py - script to generate sheets which should be sent to course heads to clarify students` status.
+1. bases_diff.py - scrips which allows to compare two databases and identify discrepancies.
+2. course_heads.py - script to generate sheets which should be sent to course heads to clarify student`s status.
 3. enabling.py, re_enabling.py, extending.py - scripts to generate docs.
 4. drive2drive.py - sctipt to transfer some files from ouк Google Drive to Yandex Drive which belongs to MSU Trade Union Committee.
 5. stat_base.py - script to build and update base with students` statuses.
